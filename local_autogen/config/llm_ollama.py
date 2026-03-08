@@ -1,8 +1,56 @@
 import os
 import requests
+from typing import List, Any, Optional, Union, Mapping, Sequence
 from autogen_ext.models.ollama import OllamaChatCompletionClient
 from autogen_ext.models.ollama._model_info import _MODEL_INFO
+from autogen_core.models import (
+    ChatCompletionClient,
+    CreateResult,
+    LLMMessage,
+    ModelCapabilities,
+)
 
+class OllamaLoggingClient(OllamaChatCompletionClient):
+    """
+    Extensão do cliente Ollama que loga o tamanho do contexto de cada chamada.
+    Permite visualizar a janela de contexto de cada agente.
+    """
+    async def create(
+        self,
+        messages: Sequence[LLMMessage],
+        tools: Sequence[Any] = [],
+        json_output: Optional[bool] = None,
+        extra_configs: Mapping[str, Any] = {},
+        cancellation_token: Any = None,
+    ) -> CreateResult:
+        # Calcular tamanho do contexto
+        total_chars = 0
+        msg_count = len(messages)
+        
+        for msg in messages:
+            if hasattr(msg, "content"):
+                if isinstance(msg.content, str):
+                    total_chars += len(msg.content)
+                elif isinstance(msg.content, list):
+                    for item in msg.content:
+                        if isinstance(item, str):
+                            total_chars += len(item)
+                        elif isinstance(item, dict) and "text" in item:
+                            total_chars += len(item["text"])
+
+        # Estimativa grosseira de tokens (1 token ~ 4 caracteres para PT/EN)
+        est_tokens = total_chars // 4
+        
+        # Log visual discreto no console (estilo Claude Code: minimalista e cinza)
+        print(f"\033[90m[CONTEXTO] {msg_count} msgs | ~{est_tokens}/{self._client_args.get('num_ctx', '32768')} tokens\033[0m")
+        
+        return await super().create(
+            messages=messages,
+            tools=tools,
+            json_output=json_output,
+            extra_configs=extra_configs,
+            cancellation_token=cancellation_token
+        )
 
 def make_ollama_client(
     model_name: str = None,
@@ -13,7 +61,7 @@ def make_ollama_client(
     model_params: dict = None
 ):
     """
-    Cria um cliente Ollama com configuração flexível.
+    Cria um cliente Ollama com monitoramento de contexto.
 
     Args:
         model_name: Nome do modelo (ex: 'qwen3.5:35b'). Default: env OLLAMA_MODEL ou 'qwen3.5:35b'
@@ -70,7 +118,7 @@ def make_ollama_client(
     if model_name not in _MODEL_INFO:
         _MODEL_INFO[model_name] = model_info
 
-    client = OllamaChatCompletionClient(
+    client = OllamaLoggingClient(
         model=model_name,
         base_url=base_url,
         api_key=api_key,

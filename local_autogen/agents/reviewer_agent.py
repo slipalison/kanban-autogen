@@ -15,7 +15,7 @@ def make_reviewer_agent(extra_tools: Optional[List[Tool]] = None) -> AssistantAg
     return AssistantAgent(
         "reviewer",
         model_client=client,
-        system_message=load_prompt("reviewer", skills=["terminal", "dotnet"]),
+        system_message=load_prompt("reviewer", skills=["terminal", "dotnet", "mudblazor"]),
         description="Code Reviewer - Revisa código e arquitetura garantindo qualidade e aderência aos requisitos.",
         model_client_stream=True,
         tools=tools,

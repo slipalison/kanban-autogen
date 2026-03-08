@@ -5,7 +5,6 @@ from datetime import datetime
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.teams import SelectorGroupChat
-from autogen_agentchat.ui import Console
 
 from local_autogen.config.llm_ollama import make_ollama_qwen_client
 from local_autogen.agents.planner_agent import make_planner_agent
@@ -67,10 +66,12 @@ async def run_kanban_team(initial_task: str) -> None:
             )
         )
 
-        logger.info("🎬 Iniciando execução do team com streaming...")
-        await Console(
+        from local_autogen.runner.claude_console import ClaudeConsole
+        
+        logger.info("🎬 Iniciando execução do team com ClaudeConsole...")
+        await ClaudeConsole(
             team.run_stream(task=initial_task)
-        )
+        ).run()
         logger.info("✅ Kanban Team finalizado com sucesso")
 
     except Exception as e:
