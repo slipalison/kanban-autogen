@@ -234,7 +234,9 @@ def make_ollama_client(
     api_key: str = "not-needed",
     model_capabilities: dict = None,
     validate_connection: bool = True,
-    model_params: dict = None
+    model_params: dict = None,
+    agent_name: str = None,
+    timeout: float = 180.0
 ):
     """
     Cria um cliente Ollama com monitoramento de contexto.
@@ -246,6 +248,8 @@ def make_ollama_client(
         model_capabilities: Dicionário com capacidades do modelo. Se None, usa defaults do Qwen
         validate_connection: Se True, valida conexão com Ollama antes de criar cliente
         model_params: Parâmetros extras para o modelo (ex: temperature, num_ctx, repeat_penalty)
+        agent_name: Nome do agente para criar alias único (ex: 'planner'). Se fornecido, cria KV Cache separado.
+        timeout: Timeout em segundos para requisições HTTP (default: 180s = 3min)
 
     Returns:
         OllamaChatCompletionClient configurado
@@ -253,6 +257,11 @@ def make_ollama_client(
     # Configurações padrão com fallback para variáveis de ambiente
     model_name = model_name or os.getenv("OLLAMA_MODEL", "qwen3.5:35b")
     base_url = base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+
+    # Se agent_name foi fornecido, criar alias único para KV Cache separado
+    # Cada alias é tratado como uma instância independente pelo Ollama
+    if agent_name:
+        model_name = f"{model_name}-{agent_name}"
 
     # Capabilities padrão para modelos Qwen (pode ser sobrescrito)
     default_capabilities = {
@@ -306,6 +315,7 @@ def make_ollama_client(
         base_url=base_url,
         api_key=api_key,
         model_info=model_info,
+        timeout=timeout,  # Timeout para evitar requisições travadas
         **params
     )
 

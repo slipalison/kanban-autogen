@@ -6,12 +6,14 @@ from local_autogen.agents.prompt_loader import load_prompt
 from local_autogen.tools.terminal import execute_shell_command
 
 def make_reviewer_agent(extra_tools: Optional[List[Tool]] = None) -> AssistantAgent:
-    client = make_ollama_qwen_client()
-    
+    # Criar cliente com KV Cache isolado para o reviewer
+    from local_autogen.config.llm_ollama import make_ollama_client
+    client = make_ollama_client(agent_name="reviewer")
+
     tools = [execute_shell_command]
     if extra_tools:
         tools.extend(extra_tools)
-        
+
     return AssistantAgent(
         "reviewer",
         model_client=client,

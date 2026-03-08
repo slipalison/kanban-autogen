@@ -48,13 +48,20 @@ async def run_kanban_team(initial_task: str) -> None:
 
         # Cliente para o seletor (quem decide quem fala a seguir)
         logger.info("🤖 Configurando modelo seletor...")
-        # Unificar num_ctx com os agentes (32k) para otimizar reuso de KV Cache no Ollama
-        # num_predict reduzido para forçar brevidade e economizar tempo
-        selector_client = make_ollama_client(model_params={
-            "num_ctx": 32768,
-            "num_predict": 32,
-            "temperature": 0.0
-        })
+        # Seletor precisa de contexto MÍNIMO — ele só lê o histórico resumido
+        # num_ctx: 4096 é mais que suficiente (evita prefill pesado de 32k)
+        # num_predict: 8 — só precisa gerar 1 palavra (nome do agente)
+        # timeout: 60s para evitar travamentos infinitos
+        selector_client = make_ollama_client(
+            agent_name="selector",  # KV Cache separado para o seletor também
+            timeout=60.0,  # Timeout curto: seletor só gera 1 palavra
+            model_params={
+                "num_ctx": 4096,
+                "num_predict": 8,
+                "temperature": 0.0,
+                "repeat_penalty": 1.0,
+            }
+        )
 
         # SelectorGroupChat garante o controle dinâmico da vez de quem vai falar
         logger.info("🎯 Criando SelectorGroupChat com workflow estruturado...")
@@ -62,29 +69,19 @@ async def run_kanban_team(initial_task: str) -> None:
             participants=[planner, architect, coder, reviewer, infrastructure],
             model_client=selector_client,
             termination_condition=termination,
-            max_selector_attempts=5,
+            max_selector_attempts=3,
             allow_repeated_speaker=True,
             selector_prompt=(
-                "### INSTRUCTION ###\n"
-                "You are the team coordinator. Analyze the history and pick the NEXT agent to speak.\n"
-                "Reply ONLY with the exact name. NO punctuation, NO markdown, NO explanation.\n\n"
-                "### AGENTS ###\n"
-                "- planner: Defines plans and stories.\n"
-                "- architect: Database and system design.\n"
-                "- coder: Writes application code (.cs, .razor).\n"
-                "- reviewer: Validates and reviews code.\n"
-                "- infrastructure: Setup, Docker, README.\n\n"
-                "### WORKFLOW RULES ###\n"
-                "1. New task? -> planner\n"
-                "2. Planner done? -> architect\n"
-                "3. Architect done? -> coder\n"
-                "4. Coder done? -> reviewer\n"
-                "5. Reviewer found bugs? -> coder\n"
-                "6. Reviewer approved? -> planner\n\n"
-                "### FORMAT ###\n"
-                "Response: [agent_name]\n"
-                "Example 1: coder\n"
-                "Example 2: architect"
+                "Read the conversation and select the next speaker.\n"
+                "Valid speakers: planner, architect, coder, reviewer, infrastructure\n\n"
+                "Rules:\n"
+                "- New task or no history → planner\n"
+                "- planner finished → architect\n"
+                "- architect finished → coder\n"
+                "- coder finished → reviewer\n"
+                "- reviewer found issues → coder\n"
+                "- reviewer approved → planner (next story) or infrastructure (final setup)\n\n"
+                "Respond with ONLY the speaker name, nothing else."
             )
         )
 

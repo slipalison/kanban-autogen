@@ -7,7 +7,9 @@ from local_autogen.tools.terminal import execute_shell_command
 from local_autogen.tools.file_writer_utils import write_project_file
 
 def make_planner_agent(extra_tools: Optional[List[Tool]] = None) -> AssistantAgent:
-    client = make_ollama_qwen_client()
+    # Criar cliente com KV Cache isolado para o planner
+    from local_autogen.config.llm_ollama import make_ollama_client
+    client = make_ollama_client(agent_name="planner")
 
     tools = [execute_shell_command, write_project_file]
     if extra_tools:
