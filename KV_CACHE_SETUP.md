@@ -137,8 +137,79 @@ selector_client = make_ollama_client(
 
 **Todos os agentes** agora têm timeout de 180s (3min) por padrão, exceto o selector que usa 60s.
 
+## 🚀 Otimização para RTX 4090 Única (24GB)
+
+### Problema: Delay de ~5s ao Trocar de Agente
+
+Com apenas 1 GPU, o Ollama precisa descarregar e recarregar modelos (23GB cada). Isso causa delay entre trocas de agente.
+
+### Solução Recomendada: Quantização KV Cache (q4_0)
+
+**Reduz VRAM de 23GB → 17GB por modelo**, acelerando trocas:
+
+```bash
+# Windows (PowerShell como Administrador)
+[System.Environment]::SetEnvironmentVariable('OLLAMA_KV_CACHE_TYPE', 'q4_0', 'User')
+
+# Reiniciar Ollama
+taskkill /F /IM ollama.exe
+ollama serve
+```
+
+**Resultado Esperado:**
+- ⚡ Delay: ~5s → ~3s (40% mais rápido)
+- 💾 VRAM: 23GB → 17GB (25% economia)
+- 🎯 Qualidade: Praticamente igual (q4_0 é imperceptível)
+
+### Alternativas (Trade-offs Maiores)
+
+#### A) **Workflow Fixo** (sem selector)
+Ordem rígida: Planner → Architect → Coder → Reviewer → Infrastructure
+
+```python
+# Trocar SelectorGroupChat por RoundRobinGroupChat
+from autogen_agentchat.teams import RoundRobinGroupChat
+
+team = RoundRobinGroupChat(
+    participants=[planner, architect, coder, reviewer, infrastructure],
+    termination_condition=termination,
+)
+```
+
+**Prós:** Elimina selector, workflow previsível
+**Contras:** Perde flexibilidade (não pode voltar ao planner)
+
+#### B) **3 Agentes ao invés de 5**
+- Designer (Planner + Architect)
+- Developer (Coder)
+- QA (Reviewer + Infrastructure)
+
+**Prós:** Menos trocas de modelo
+**Contras:** Agentes mais genéricos, pode perder qualidade
+
+#### C) **Modelos Mistos** (7B/14B para tarefas simples)
+```python
+# Planner/Reviewer: qwen2.5:14b (5GB)
+# Coder: qwen3.5:35b (23GB)
+```
+
+**Prós:** Múltiplos modelos pequenos cabem na VRAM
+**Contras:** Qualidade variável, precisa testar
+
+### Comparação de Estratégias
+
+| Estratégia | Delay | Qualidade | Complexidade | Mudanças |
+|-----------|-------|-----------|--------------|----------|
+| **KV Cache q4_0** ⭐ | ~3s | ⭐⭐⭐⭐⭐ | Baixa | 1 variável |
+| **RoundRobin** | ~5s | ⭐⭐⭐⭐ | Baixa | 3 linhas |
+| **3 Agentes** | ~3s | ⭐⭐⭐⭐ | Média | Refatorar |
+| **Modelos Mistos** | ~1s | ⭐⭐⭐⭐ | Alta | Múltiplos modelos |
+
+⭐ **Recomendado:** Quantização KV Cache (q4_0) - Melhor custo-benefício
+
 ## Referências
 
 - [Ollama API Documentation](https://github.com/ollama/ollama/blob/main/docs/api.md)
 - [Ollama FAQ - Model Loading](https://docs.ollama.com/faq)
+- [Ollama KV Cache Quantization](https://smcleod.net/2024/12/bringing-k/v-context-quantisation-to-ollama/)
 - [SideQuest: Model-Driven KV Cache Management](https://arxiv.org/html/2602.22603v1)
