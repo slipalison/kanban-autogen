@@ -9,5 +9,5 @@ conteúdo completo do arquivo aqui
 ```
 
 O sistema processará automaticamente estes blocos e salvará os arquivos no disco.
-Sempre use caminhos relativos à raiz do projeto.
-Certifique-se de que o caminho inclua os diretórios necessários (ex: src/App.cs, README.md, scripts/deploy.sh).
+Sempre use caminhos relativos à raiz do projeto e GARANTA que tudo comece com o diretório 'project/'.
+Exemplo: project/src/App.cs, project/README.md, project/scripts/deploy.sh.

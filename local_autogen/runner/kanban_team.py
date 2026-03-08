@@ -45,7 +45,7 @@ async def run_kanban_team(initial_task: str) -> None:
         logger.info("✅ Agentes criados: planner, architect, coder, reviewer, infrastructure")
 
         # Usar o terminador personalizado que salva arquivos
-        termination = FileWriterTermination(output_dir=".", max_messages=100)
+        termination = FileWriterTermination(output_dir="project", max_messages=100)
 
         # Cliente para o seletor (quem decide quem fala a seguir)
         logger.info("🤖 Configurando modelo seletor...")

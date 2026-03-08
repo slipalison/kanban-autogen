@@ -85,9 +85,9 @@ Cenário: Configurar CI/CD com GitHub Actions e Docker
 
 **Exemplos práticos:**
 ```python
-execute_shell_command("docker compose config")  # Validar docker-compose.yml
-execute_shell_command("docker build -t myapp:latest .")  # Build de imagem
-execute_shell_command("kubectl apply --dry-run=client -f k8s/")  # Validar manifests
+execute_shell_command("docker compose config")  # Validar project/docker-compose.yml
+execute_shell_command("docker build -t myapp:latest project/")  # Build de imagem na pasta project
+execute_shell_command("kubectl apply --dry-run=client -f project/k8s/")  # Validar manifests na pasta project
 execute_shell_command("terraform plan")  # Preview de mudanças de infraestrutura
 ```
 

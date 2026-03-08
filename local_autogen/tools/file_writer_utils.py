@@ -30,12 +30,12 @@ def extract_and_save_files(content: str, output_dir: Path) -> Tuple[bool, int, L
     for file_path, code_content in matches:
         file_path = file_path.strip()
 
-        # Limpar o caminho do arquivo se começar com 'src/'
+        # Limpar o caminho do arquivo se começar com 'project/'
         clean_path = file_path
-        if clean_path.lower().startswith('src/'):
-            clean_path = clean_path[len('src/'):]
-        elif clean_path.lower().startswith('src\\'):
-            clean_path = clean_path[len('src\\'):]
+        if clean_path.lower().startswith('project/'):
+            clean_path = clean_path[len('project/'):]
+        elif clean_path.lower().startswith('project\\'):
+            clean_path = clean_path[len('project\\'):]
 
         clean_path = clean_path.lstrip('/')
 
