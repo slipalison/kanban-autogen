@@ -35,6 +35,22 @@ ollama cp qwen2.5:32b qwen2.5:32b-coder
 ollama cp qwen2.5:32b qwen2.5:32b-reviewer
 ollama cp qwen2.5:32b qwen2.5:32b-infrastructure
 ollama cp qwen2.5:32b qwen2.5:32b-selector
+
+```
+
+```bash
+# 1. Baixar modelo base (não o coder)
+ollama pull qwen3.5:27b
+
+# 2. Criar aliases
+ollama cp qqwen3.5:27b qwen3.5:27b-selector
+
+ollama cp qwen3.5:27b qwen3.5:27b-planner
+ollama cp qwen3.5:27b qwen3.5:27b-architect
+ollama cp qwen3.5:27b qwen3.5:27b-coder
+ollama cp qwen3.5:27b qwen3.5:27b-reviewer
+ollama cp qwen3.5:27b qwen3.5:27b-infrastructure
+ollama cp qwen3.5:27b qwen3.5:27b-selector
 ```
 
 ### Atualizar Código
