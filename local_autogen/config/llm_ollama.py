@@ -66,10 +66,9 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
         content = ""
         completion_tokens = 0
         
-        # Extração de conteúdo e contagem de tokens real se disponível
+        # Extração de conteúdo para contagem de tokens
         if isinstance(result, str):
             content = result
-            completion_tokens = len(content) // 4
         elif isinstance(result, list):
             # Caso de streaming (full_content)
             text_parts = []
@@ -79,7 +78,6 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
                 elif hasattr(item, "content") and isinstance(item.content, str):
                     text_parts.append(item.content)
             content = "".join(text_parts)
-            completion_tokens = len(content) // 4
         elif isinstance(result, CreateResult):
             if isinstance(result.content, str):
                 content = result.content
@@ -93,15 +91,14 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
                         parts.append(part)
                 content = "".join(parts)
             
-            # Tenta usar a contagem real de tokens do provedor
-            if hasattr(result, "usage") and result.usage:
-                completion_tokens = result.usage.completion_tokens
-            else:
-                completion_tokens = len(content) // 4
+        # Estimativa de tokens
+        if content:
+            # Melhor estimativa para strings curtas (seletor), min 1
+            completion_tokens = max(1, len(content) // 2) if len(content) < 20 else len(content) // 4
         
-        # Garante pelo menos 1 token se houver conteúdo para não dar 0.0
-        if content and completion_tokens == 0:
-            completion_tokens = 1
+        # Tenta usar a contagem real de tokens do provedor se disponível
+        if isinstance(result, CreateResult) and hasattr(result, "usage") and result.usage:
+            completion_tokens = result.usage.completion_tokens
 
         tps = completion_tokens / duration if duration > 0 else 0
         

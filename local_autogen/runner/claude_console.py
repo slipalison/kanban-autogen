@@ -88,7 +88,7 @@ class ClaudeConsole:
         # Não imprime divisor se for o mesmo agente, apenas garante o cabeçalho se necessário
         if self._current_source != source:
             # Divisor sutil entre mensagens de agentes diferentes
-            print(f"\n{self.DIM}─" * 40 + f"{self.RESET}")
+            print(f"\n{self.DIM}" + "─" * 40 + f"{self.RESET}")
         
         color, icon = self._get_theme(source)
         # Cabeçalho do Agente

@@ -49,10 +49,10 @@ async def run_kanban_team(initial_task: str) -> None:
         # Cliente para o seletor (quem decide quem fala a seguir)
         logger.info("🤖 Configurando modelo seletor...")
         # Unificar num_ctx com os agentes (32k) para otimizar reuso de KV Cache no Ollama
-        # Limitar num_predict para o seletor (ele só precisa retornar o nome do agente)
+        # Aumentar um pouco num_predict para evitar cortes em caso de verbosidade
         selector_client = make_ollama_client(model_params={
             "num_ctx": 32768,
-            "num_predict": 64,
+            "num_predict": 128,
             "temperature": 0.0
         })
 
@@ -62,9 +62,16 @@ async def run_kanban_team(initial_task: str) -> None:
             participants=[planner, architect, coder, reviewer, infrastructure],
             model_client=selector_client,
             termination_condition=termination,
+            max_selector_attempts=5,
+            allow_repeated_speaker=True,
             selector_prompt=(
-                "Próximo agente? (planner, architect, infrastructure, coder, reviewer)\n"
-                "Siga a sequência linear. Se revisão falhou -> coder. Se OK -> planner.\n"
+                "Você é o coordenador do time. Com base no histórico, escolha o PRÓXIMO agente para falar.\n"
+                "Agentes disponíveis: planner, architect, coder, reviewer, infrastructure.\n\n"
+                "REGRAS DE SELEÇÃO:\n"
+                "1. Siga a sequência lógica: Planner -> Architect -> Coder -> Reviewer.\n"
+                "2. Se o Reviewer encontrar erros, o próximo DEVE ser o Coder.\n"
+                "3. Se o Reviewer aprovar, o próximo DEVE ser o Planner para a próxima tarefa.\n"
+                "4. Use 'infrastructure' para README e Dockerfile conforme necessário.\n\n"
                 "Responda APENAS o nome do agente (ex: 'coder')."
             )
         )
