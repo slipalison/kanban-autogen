@@ -18,10 +18,7 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
     async def create(
         self,
         messages: Sequence[LLMMessage],
-        tools: Sequence[Any] = [],
-        json_output: Optional[bool] = None,
-        extra_configs: Mapping[str, Any] = {},
-        cancellation_token: Any = None,
+        **kwargs: Any,
     ) -> CreateResult:
         # Calcular tamanho do contexto
         total_chars = 0
@@ -47,10 +44,7 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
         
         return await super().create(
             messages=messages,
-            tools=tools,
-            json_output=json_output,
-            extra_configs=extra_configs,
-            cancellation_token=cancellation_token
+            **kwargs
         )
 
 def make_ollama_client(
