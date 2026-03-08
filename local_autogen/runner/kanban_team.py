@@ -73,18 +73,26 @@ async def run_kanban_team(initial_task: str) -> None:
             max_selector_attempts=3,
             allow_repeated_speaker=True,
             selector_prompt=(
-                "Read the conversation and select the next speaker.\n"
-                "Valid speakers: planner, architect, coder, reviewer, infrastructure\n\n"
-                "Workflow Rules (STRICT):\n"
-                "1. New task → planner\n"
-                "2. Planner saved PLAN.md → architect (MUST move forward)\n"
-                "3. Architect finished → coder\n"
-                "4. Coder finished → reviewer\n"
-                "5. Reviewer found issues → coder\n"
-                "6. Reviewer approved → infrastructure or planner (next story)\n\n"
-                "IMPORTANT: If planner says 'Plano salvo' or 'waiting for architect', you MUST select 'architect'.\n"
-                "Do NOT select planner twice in a row unless there's a new task.\n\n"
-                "Respond with ONLY the speaker name, nothing else."
+                "You are a workflow orchestrator. Select the next speaker based on STRICT rules.\n\n"
+                "AVAILABLE SPEAKERS:\n"
+                "- planner: Plans and prioritizes work\n"
+                "- architect: Designs architecture and creates ADRs\n"
+                "- coder: Implements code\n"
+                "- reviewer: Reviews code quality\n"
+                "- infrastructure: Sets up deployment and CI/CD\n\n"
+                "WORKFLOW RULES (STRICTLY ENFORCE):\n"
+                "1. If last message contains 'DELEGANDO: @architect' OR 'Plano salvo' → SELECT architect\n"
+                "2. If last message contains 'DELEGANDO: @coder' OR architect finished ADRs → SELECT coder\n"
+                "3. If last message contains 'DELEGANDO: @reviewer' OR coder finished implementation → SELECT reviewer\n"
+                "4. If reviewer approved → SELECT infrastructure\n"
+                "5. If reviewer found issues → SELECT coder\n"
+                "6. If infrastructure finished → SELECT planner (next story)\n"
+                "7. New task from user → SELECT planner\n\n"
+                "CRITICAL RULES:\n"
+                "- If the last speaker was 'planner' AND message contains 'DELEGANDO' → You MUST select the delegated agent\n"
+                "- NEVER select the same speaker twice in a row (except when reviewer sends back to coder)\n"
+                "- Look at the LAST message content to decide\n\n"
+                "OUTPUT FORMAT: Respond with ONLY ONE WORD - the speaker name. No explanation."
             )
         )
 

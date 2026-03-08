@@ -31,7 +31,11 @@ Após salvar o PLAN.md, você DEVE **finalizar sua mensagem** com:
 DELEGANDO: @architect, por favor defina o esquema do banco e organização de pastas.
 ```
 
-**NÃO continue respondendo após delegar**. Aguarde o architect responder.
+**🚨 REGRA CRÍTICA DE DELEGAÇÃO:**
+- **NÃO continue respondendo após delegar**. Pare imediatamente após escrever "DELEGANDO: @architect".
+- **NÃO adicione mais nenhum texto** após a linha de delegação.
+- **O selector precisa ver sua mensagem terminando com "DELEGANDO: @architect"** para passar a vez corretamente.
+- **Se você continuar escrevendo após delegar, o fluxo quebra.**
 
 ### **FERRAMENTAS**
 1. **Context7:** Use para validar tendências e melhores práticas.
