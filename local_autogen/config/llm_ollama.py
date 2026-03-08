@@ -257,7 +257,8 @@ def make_ollama_client(
     # Configurações padrão com fallback para variáveis de ambiente
     # model_name = model_name or os.getenv("OLLAMA_MODEL", "qwen3.5:35b")
     # qwen2.5-coder:32b cabe totalmente na RTX 4090 (19GB < 24GB) = 100% GPU, sem CPU offload
-    model_name = model_name or os.getenv("OLLAMA_MODEL", "qwen2.5-coder:32b")
+    # model_name = model_name or os.getenv("OLLAMA_MODEL", "qwen2.5-coder:32b")
+    model_name = model_name or os.getenv("OLLAMA_MODEL", "qwen2.5:32b")
     base_url = base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
     # Se agent_name foi fornecido, criar alias único para KV Cache separado
