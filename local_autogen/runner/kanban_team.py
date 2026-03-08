@@ -18,10 +18,11 @@ from local_autogen.tools.mcp_context7 import get_cached_context7_tools
 
 # Configurar logging estruturado
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.WARNING,
     format='%(asctime)s | %(levelname)s | %(name)s | %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
+logging.getLogger("autogen_core").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 async def run_kanban_team(initial_task: str) -> None:
