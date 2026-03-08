@@ -89,10 +89,17 @@ class ClaudeConsole:
         self._has_printed_header = True
 
     def _handle_streaming_chunk(self, msg: ModelClientStreamingChunkEvent):
-        self._print_header(msg.source)
-        # Imprimir o conteúdo do chunk sem pular linha
+        if not self._has_printed_header:
+            self._print_header(msg.source)
+            # Indentação inicial apenas no começo da resposta
+            sys.stdout.write("  ")
+        
+        # Substituir novas linhas para manter a indentação em cada linha do stream
         content = msg.content
-        sys.stdout.write(f"  {content}")
+        if "\n" in content:
+            content = content.replace("\n", "\n  ")
+            
+        sys.stdout.write(content)
         sys.stdout.flush()
 
     def _handle_thought(self, msg: ThoughtEvent):
