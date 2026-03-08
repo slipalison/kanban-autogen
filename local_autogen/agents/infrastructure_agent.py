@@ -16,7 +16,7 @@ def make_infrastructure_agent(extra_tools: Optional[List[Tool]] = None) -> Assis
     return AssistantAgent(
         "infrastructure",
         model_client=client,
-        system_message=load_prompt("infrastructure"),
+        system_message=load_prompt("infrastructure", skills=["terminal", "file_writer"]),
         description="DevOps / Infrastructure Engineer - Especialista em Docker e infraestrutura do projeto.",
         model_client_stream=True,
         tools=tools,

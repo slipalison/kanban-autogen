@@ -15,7 +15,7 @@ def make_architect_agent(extra_tools: Optional[List[Tool]] = None) -> AssistantA
     return AssistantAgent(
         "architect",
         model_client=client,
-        system_message=load_prompt("architect"),
+        system_message=load_prompt("architect", skills=["context7", "terminal"]),
         description="Software Architect - Desenha a arquitetura, padrões e contratos do sistema.",
         model_client_stream=True,
         tools=tools,

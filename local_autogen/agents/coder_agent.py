@@ -15,7 +15,7 @@ def make_coder_agent(extra_tools: Optional[List[Tool]] = None) -> AssistantAgent
     return AssistantAgent(
         "coder",
         model_client=client,
-        system_message=load_prompt("coder"),
+        system_message=load_prompt("coder", skills=["context7", "terminal", "file_writer", "dotnet"]),
         description="Senior Developer - Implementa lógica e componentes em qualquer linguagem solicitada.",
         model_client_stream=True,
         tools=tools,

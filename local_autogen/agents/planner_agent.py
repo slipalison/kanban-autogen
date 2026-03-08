@@ -1,3 +1,4 @@
+from typing import List, Optional
 from autogen_agentchat.agents import AssistantAgent
 from autogen_core.tools import Tool
 from local_autogen.config.llm_ollama import make_ollama_qwen_client
@@ -14,7 +15,7 @@ def make_planner_agent(extra_tools: Optional[List[Tool]] = None) -> AssistantAge
     return AssistantAgent(
         "planner",
         model_client=client,
-        system_message=load_prompt("planner"),
+        system_message=load_prompt("planner", skills=["context7"]),
         description="Tech Lead & Product Owner - Define a visão de produto, prioriza o backlog e coordena a execução técnica do time.",
         model_client_stream=True,
         tools=tools,

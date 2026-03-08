@@ -9,7 +9,8 @@ def make_ollama_client(
     base_url: str = None,
     api_key: str = "not-needed",
     model_capabilities: dict = None,
-    validate_connection: bool = True
+    validate_connection: bool = True,
+    model_params: dict = None
 ):
     """
     Cria um cliente Ollama com configuração flexível.
@@ -20,12 +21,10 @@ def make_ollama_client(
         api_key: API key (mantida para compatibilidade com interface)
         model_capabilities: Dicionário com capacidades do modelo. Se None, usa defaults do Qwen
         validate_connection: Se True, valida conexão com Ollama antes de criar cliente
+        model_params: Parâmetros extras para o modelo (ex: temperature, num_ctx, repeat_penalty)
 
     Returns:
         OllamaChatCompletionClient configurado
-
-    Raises:
-        ConnectionError: Se validate_connection=True e não conseguir conectar ao Ollama
     """
     # Configurações padrão com fallback para variáveis de ambiente
     model_name = model_name or os.getenv("OLLAMA_MODEL", "qwen3.5:35b")
@@ -41,6 +40,20 @@ def make_ollama_client(
     }
 
     model_info = model_capabilities or default_capabilities
+    
+    # Parâmetros padrão para otimização de velocidade
+    # num_ctx: 32768 (conforme solicitado pelo usuário)
+    # temperature: 0 para ser mais determinístico e rápido em decisões
+    default_params = {
+        "num_ctx": 32768,
+        "temperature": 0.0,
+        "num_predict": 4096,
+        "repeat_penalty": 1.1
+    }
+    
+    params = default_params.copy()
+    if model_params:
+        params.update(model_params)
 
     # Validar conexão com Ollama se solicitado
     if validate_connection:
@@ -61,7 +74,8 @@ def make_ollama_client(
         model=model_name,
         base_url=base_url,
         api_key=api_key,
-        model_info=model_info
+        model_info=model_info,
+        **params
     )
 
     return client
