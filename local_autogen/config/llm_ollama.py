@@ -43,18 +43,31 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
         return f"\033[90m[CONTEXTO] {mode_label} | {msg_count} msgs | ~{est_tokens}/{num_ctx} tokens | "
 
     async def _animate_wait(self, header: str, stop_event: asyncio.Event):
-        """Tarefa de fundo que exibe um spinner animado no console."""
+        """Tarefa de fundo que exibe um spinner animado no console com cronômetro em formato HH:MM:SS."""
         frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
         i = 0
+        start_time = time.time()
         try:
             while not stop_event.is_set():
+                elapsed = time.time() - start_time
                 frame = frames[i % len(frames)]
-                sys.stdout.write(f"\r{header}{frame} Processando...\033[0m")
+                
+                # Formatação do cronômetro: HH:MM:SS
+                h, r = divmod(int(elapsed), 3600)
+                m, s = divmod(r, 60)
+                timer = f"{h:02d}:{m:02d}:{s:02d}"
+                
+                sys.stdout.write(f"\r{header}{frame} Processando... ({timer})\033[0m")
                 sys.stdout.flush()
                 i += 1
                 await asyncio.sleep(0.1)
-            # Ao parar, finaliza a linha de forma limpa
-            sys.stdout.write(f"\r{header}✅ Pronto!                         \n")
+            # Ao parar, finaliza a linha de forma limpa com o tempo total
+            total_elapsed = time.time() - start_time
+            h, r = divmod(int(total_elapsed), 3600)
+            m, s = divmod(r, 60)
+            final_timer = f"{h:02d}:{m:02d}:{s:02d}"
+            
+            sys.stdout.write(f"\r{header}✅ Pronto! ({final_timer})                    \n")
             sys.stdout.flush()
         except (asyncio.CancelledError, Exception):
             # Fallback para garantir que o console não fique em estado inconsistente
@@ -102,7 +115,12 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
 
         tps = completion_tokens / duration if duration > 0 else 0
         
-        perf_info = f"\033[90m[PERFORMANCE] {msg_count} msgs | ~{completion_tokens} tokens | {duration:.2f}s | {tps:.1f} tokens/sec"
+        # Formatação do cronômetro: HH:MM:SS
+        h, r = divmod(int(duration), 3600)
+        m, s = divmod(r, 60)
+        duration_str = f"{h:02d}:{m:02d}:{s:02d}"
+        
+        perf_info = f"\033[90m[PERFORMANCE] {msg_count} msgs | ~{completion_tokens} tokens | {duration_str} | {tps:.1f} tokens/sec"
         if ttft is not None:
             perf_info += f" | TTFT: {ttft:.2f}s"
             # Alerta se o prefill estiver lento

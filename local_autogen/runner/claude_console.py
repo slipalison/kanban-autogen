@@ -212,7 +212,10 @@ class ClaudeConsole:
             duration = ""
             if call_id in self._tool_start_times:
                 dt = time.time() - self._tool_start_times[call_id]
-                duration = f" {self.DIM}({dt:.2f}s){self.RESET}"
+                h, r = divmod(int(dt), 3600)
+                m, s = divmod(r, 60)
+                duration_str = f"{h:02d}:{m:02d}:{s:02d}"
+                duration = f" {self.DIM}({duration_str}){self.RESET}"
                 del self._tool_start_times[call_id]
             
             status_icon = "❌ " if is_error else "✅ "
