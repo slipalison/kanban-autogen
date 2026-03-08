@@ -106,6 +106,39 @@ curl http://localhost:11434/api/ps | jq
 nvidia-smi
 ```
 
+## ⚠️ ATUALIZAÇÃO IMPORTANTE: Troca de Modelo (CRÍTICO!)
+
+### 🚨 Problema Descoberto: qwen3.5:35b com CPU Offload
+
+```bash
+# Sintoma observado
+ollama ps
+NAME           SIZE     PROCESSOR
+qwen3.5:35b    35 GB    34%/66% CPU/GPU  ❌ LENTO!
+```
+
+**Causa:** Modelo 35GB não cabe nos 24GB da RTX 4090. Ollama faz offload para CPU/RAM, ficando 50-100x mais lento!
+
+### ✅ Solução Aplicada: qwen2.5-coder:32b
+
+```bash
+# Agora usando modelo que cabe na GPU
+ollama ps
+NAME                    SIZE     PROCESSOR
+qwen2.5-coder:32b-*     19 GB    100% GPU  ✅ RÁPIDO!
+```
+
+**Sistema agora usa `qwen2.5-coder:32b` por padrão** (configurado em `llm_ollama.py`).
+
+**Performance esperada:**
+- Prefill: 5-8s (vs 6+ minutos antes)
+- Geração: 50-70 tokens/sec (vs 1-2 tokens/sec antes)
+- Sem travamentos de 20+ minutos ✅
+
+Para mais detalhes sobre modelos, veja `MODELOS_RECOMENDADOS.md`.
+
+---
+
 ## ⚠️ Problema de Travamento do Selector (RESOLVIDO)
 
 ### Sintoma
