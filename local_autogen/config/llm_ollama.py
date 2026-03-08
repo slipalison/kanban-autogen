@@ -1,13 +1,38 @@
+import os
+import requests
 from autogen_ext.models.ollama import OllamaChatCompletionClient
 from autogen_ext.models.ollama._model_info import _MODEL_INFO
 
-def make_ollama_qwen_client():
-    model_name = "qwen3.5:35b"
-    base_url = "http://localhost:11434"
-    api_key = "not-needed"
 
-    # Definir model_info completo para o modelo personalizado
-    model_info = {
+def make_ollama_client(
+    model_name: str = None,
+    base_url: str = None,
+    api_key: str = "not-needed",
+    model_capabilities: dict = None,
+    validate_connection: bool = True
+):
+    """
+    Cria um cliente Ollama com configuração flexível.
+
+    Args:
+        model_name: Nome do modelo (ex: 'qwen3.5:35b'). Default: env OLLAMA_MODEL ou 'qwen3.5:35b'
+        base_url: URL do servidor Ollama. Default: env OLLAMA_BASE_URL ou 'http://localhost:11434'
+        api_key: API key (mantida para compatibilidade com interface)
+        model_capabilities: Dicionário com capacidades do modelo. Se None, usa defaults do Qwen
+        validate_connection: Se True, valida conexão com Ollama antes de criar cliente
+
+    Returns:
+        OllamaChatCompletionClient configurado
+
+    Raises:
+        ConnectionError: Se validate_connection=True e não conseguir conectar ao Ollama
+    """
+    # Configurações padrão com fallback para variáveis de ambiente
+    model_name = model_name or os.getenv("OLLAMA_MODEL", "qwen3.5:35b")
+    base_url = base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+
+    # Capabilities padrão para modelos Qwen (pode ser sobrescrito)
+    default_capabilities = {
         'vision': False,
         'function_calling': True,
         'json_output': True,
@@ -15,13 +40,34 @@ def make_ollama_qwen_client():
         'structured_output': True
     }
 
-    # Registrar o modelo personalizado
-    _MODEL_INFO[model_name] = model_info
+    model_info = model_capabilities or default_capabilities
+
+    # Validar conexão com Ollama se solicitado
+    if validate_connection:
+        try:
+            response = requests.get(f"{base_url}/api/tags", timeout=5)
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            raise ConnectionError(
+                f"Não foi possível conectar ao Ollama em {base_url}. "
+                f"Certifique-se de que o Ollama está rodando. Erro: {e}"
+            )
+
+    # Registrar o modelo personalizado no _MODEL_INFO (evita re-registro)
+    if model_name not in _MODEL_INFO:
+        _MODEL_INFO[model_name] = model_info
 
     client = OllamaChatCompletionClient(
         model=model_name,
         base_url=base_url,
-        api_key=api_key,
-        model_info=model_info  # Passar model_info explicitamente
+        api_key=api_key
     )
+
     return client
+
+
+def make_ollama_qwen_client():
+    """
+    Função de conveniência para criar cliente Qwen (mantida para compatibilidade).
+    """
+    return make_ollama_client(model_name="qwen3.5:35b")
