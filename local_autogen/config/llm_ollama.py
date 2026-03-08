@@ -134,7 +134,13 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
         if isinstance(result, CreateResult) and hasattr(result, "usage") and result.usage:
             completion_tokens = result.usage.completion_tokens
 
-        tps = completion_tokens / duration if duration > 0 else 0
+        # CÁLCULO DE VELOCIDADE REAL DA GPU (EXCLUINDO PREFILL/TTFT)
+        # tokens/sec = tokens / (duração total - tempo de prefill)
+        generation_time = duration
+        if ttft is not None and duration > ttft:
+            generation_time = duration - ttft
+            
+        tps = completion_tokens / generation_time if generation_time > 0.01 else 0
         
         # Formatação do cronômetro: HH:MM:SS
         h, r = divmod(int(duration), 3600)
@@ -146,7 +152,7 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
         if content and len(content.strip()) < 100:
             preview = f" | Resp: '{content.strip()}'"
 
-        perf_info = f"\033[90m[PERFORMANCE] {msg_count} msgs | ~{completion_tokens} tokens | {duration_str} | {tps:.1f} tokens/sec{preview}"
+        perf_info = f"\033[90m[PERFORMANCE] {msg_count} msgs | ~{completion_tokens} tokens | {duration_str} | {tps:.1f} tokens/sec (Real GPU Speed){preview}"
         if ttft is not None:
             perf_info += f" | TTFT: {ttft:.2f}s"
             # Alerta se o prefill estiver lento
