@@ -61,22 +61,54 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
             sys.stdout.write("\n")
             sys.stdout.flush()
 
-    def _log_performance(self, result: Union[str, CreateResult], duration: float, ttft: Optional[float] = None, msg_count: int = 0):
+    def _log_performance(self, result: Union[str, CreateResult, List[Any]], duration: float, ttft: Optional[float] = None, msg_count: int = 0):
         """Loga métricas de performance (tokens/sec, TTFT) no console."""
         content = ""
+        completion_tokens = 0
+        
+        # Extração de conteúdo e contagem de tokens real se disponível
         if isinstance(result, str):
             content = result
-        elif hasattr(result, "content") and isinstance(result.content, str):
-            content = result.content
+            completion_tokens = len(content) // 4
+        elif isinstance(result, list):
+            # Caso de streaming (full_content)
+            text_parts = []
+            for item in result:
+                if isinstance(item, str):
+                    text_parts.append(item)
+                elif hasattr(item, "content") and isinstance(item.content, str):
+                    text_parts.append(item.content)
+            content = "".join(text_parts)
+            completion_tokens = len(content) // 4
+        elif isinstance(result, CreateResult):
+            if isinstance(result.content, str):
+                content = result.content
+            elif isinstance(result.content, list):
+                # Extração de texto de lista de conteúdos (ex: TextContent)
+                parts = []
+                for part in result.content:
+                    if hasattr(part, "text"):
+                        parts.append(part.text)
+                    elif isinstance(part, str):
+                        parts.append(part)
+                content = "".join(parts)
+            
+            # Tenta usar a contagem real de tokens do provedor
+            if hasattr(result, "usage") and result.usage:
+                completion_tokens = result.usage.completion_tokens
+            else:
+                completion_tokens = len(content) // 4
         
-        # Estimativa de tokens (1 token ~ 4 caracteres)
-        tokens = len(content) // 4
-        tps = tokens / duration if duration > 0 else 0
+        # Garante pelo menos 1 token se houver conteúdo para não dar 0.0
+        if content and completion_tokens == 0:
+            completion_tokens = 1
+
+        tps = completion_tokens / duration if duration > 0 else 0
         
-        perf_info = f"\033[90m[PERFORMANCE] {msg_count} msgs | ~{tokens} tokens | {duration:.2f}s | {tps:.1f} tokens/sec"
+        perf_info = f"\033[90m[PERFORMANCE] {msg_count} msgs | ~{completion_tokens} tokens | {duration:.2f}s | {tps:.1f} tokens/sec"
         if ttft is not None:
             perf_info += f" | TTFT: {ttft:.2f}s"
-            # Alerta se o prefill estiver lento (acima de 5s em um setup de 4090/7900X3D é incomum)
+            # Alerta se o prefill estiver lento
             if ttft > 5.0:
                 perf_info += " ⚠️ (Prefill Lento)"
         
@@ -130,7 +162,14 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
                 if isinstance(chunk, str):
                     full_content.append(chunk)
                 elif isinstance(chunk, CreateResult):
-                    full_content.append(chunk.content)
+                    if isinstance(chunk.content, str):
+                        full_content.append(chunk.content)
+                    elif isinstance(chunk.content, list):
+                        for part in chunk.content:
+                            if isinstance(part, str):
+                                full_content.append(part)
+                            elif hasattr(part, "text"):
+                                full_content.append(part.text)
                 yield chunk
         finally:
             if not stop_event.is_set():
@@ -139,7 +178,8 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
             
             duration = time.time() - start_time
             if full_content:
-                self._log_performance("".join(full_content), duration, ttft=ttft, msg_count=len(messages))
+                # Passa a lista diretamente para a nova lógica de _log_performance
+                self._log_performance(full_content, duration, ttft=ttft, msg_count=len(messages))
 
 def make_ollama_client(
     model_name: str = None,

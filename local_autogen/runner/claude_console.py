@@ -79,12 +79,18 @@ class ClaudeConsole:
         return ("\033[97m", "🤖") # Default
 
     def _print_header(self, source: str):
+        if not source:
+            return
+            
         if self._current_source == source and self._has_printed_header:
             return
             
+        # Não imprime divisor se for o mesmo agente, apenas garante o cabeçalho se necessário
+        if self._current_source != source:
+            # Divisor sutil entre mensagens de agentes diferentes
+            print(f"\n{self.DIM}─" * 40 + f"{self.RESET}")
+        
         color, icon = self._get_theme(source)
-        # Divisor sutil entre mensagens de agentes
-        print(f"\n{self.DIM}─" * 60 + f"{self.RESET}")
         # Cabeçalho do Agente
         print(f"{color}{self.BOLD}{icon} {source.upper()}{self.RESET}")
         self._current_source = source
@@ -105,10 +111,10 @@ class ClaudeConsole:
         sys.stdout.flush()
 
     def _handle_thought(self, msg: ThoughtEvent):
-        self._print_header(msg.source)
         # Pensamentos geralmente são prefixados ou formatados diferentemente
         content = msg.content.strip()
         if content:
+            self._print_header(msg.source)
             print(f"\n  {self.DIM}{self.ITALIC}💭 Pensamento: {content}{self.RESET}")
 
     def _handle_text_message(self, msg: TextMessage):
@@ -122,21 +128,25 @@ class ClaudeConsole:
             self._has_printed_header = False # Reset para a próxima mensagem
             return
 
-        self._print_header(msg.source)
-        
         # Conteúdo (Pensamentos/Respostas)
         content = msg.content.strip()
         if content:
+            self._print_header(msg.source)
             # Indentar conteúdo para ficar mais legível
             lines = content.split('\n')
             for line in lines:
                 print(f"  {line}")
-        print("")
+        
+        if content or self._has_printed_header:
+            print("")
+        
         self._has_printed_header = False
 
     def _handle_tool_call(self, msg: Any):
         # Tenta extrair o source e o conteúdo (lista de chamadas)
         source = getattr(msg, "source", "unknown")
+        self._print_header(source)
+        
         color, _ = self._get_theme(source)
         
         # O conteúdo costuma estar em .content ou .tool_calls
