@@ -84,7 +84,7 @@ async def main() -> None:
         "OBJETIVO: Criar um sistema Kanban (estilo Trello) minimalista e funcional.\n\n"
         "STACK TECNOLÓGICA:\n"
         "- Backend: C# .NET 10 (Web API ou integrado ao Blazor), deve usar o arquivo .slnx o novo formato do arquivo de solução\n"
-        "- Frontend: MudBlazor pois ele já tem suporte a Drag & Drop, se atualize com o MCP Context7\n"
+        "- Frontend: MudBlazor pois ele já tem suporte a Drag & Drop\n"
         "- Banco de Dados: PostgreSQL (para facilitar o setup) com Entity Framework Core\n\n"
         "REQUISITOS FUNCIONAIS:\n"
         "1. Autenticação Simples: Tela de login e tela de cadastro (Nome, Email, Senha), com sessão de usuário logado.\n"
