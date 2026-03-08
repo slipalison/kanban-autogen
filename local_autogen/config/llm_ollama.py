@@ -24,6 +24,7 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
         msg_count = len(messages)
         
         for msg in messages:
+            # Texto da mensagem
             if hasattr(msg, "content"):
                 if isinstance(msg.content, str):
                     total_chars += len(msg.content)
@@ -31,8 +32,22 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
                     for item in msg.content:
                         if isinstance(item, str):
                             total_chars += len(item)
+                        elif hasattr(item, "text") and isinstance(item.text, str):
+                            total_chars += len(item.text)
                         elif isinstance(item, dict) and "text" in item:
                             total_chars += len(item["text"])
+            
+            # Tool calls (mensagens do assistente com chamadas de ferramenta)
+            if hasattr(msg, "tool_calls") and msg.tool_calls:
+                for tc in msg.tool_calls:
+                    if hasattr(tc, "function"):
+                        total_chars += len(tc.function.name) + len(tc.function.arguments)
+
+            # Tool responses (resultados das ferramentas)
+            if hasattr(msg, "content") and isinstance(msg.content, list):
+                for item in msg.content:
+                    if hasattr(item, "content") and isinstance(item.content, str):
+                        total_chars += len(item.content)
 
         # Estimativa grosseira de tokens (1 token ~ 4 caracteres para PT/EN)
         est_tokens = total_chars // 4
@@ -104,10 +119,16 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
                         parts.append(part)
                 content = "".join(parts)
             
-        # Estimativa de tokens
+            # Contabilizar tool_calls na estimativa de tokens se não houver usage oficial
+            if hasattr(result, "tool_calls") and result.tool_calls:
+                for tc in result.tool_calls:
+                    completion_tokens += (len(tc.function.name) + len(tc.function.arguments)) // 4
+            
+        # Estimativa de tokens de texto
         if content:
             # Melhor estimativa para strings curtas (seletor), min 1
-            completion_tokens = max(1, len(content) // 2) if len(content) < 20 else len(content) // 4
+            text_tokens = max(1, len(content) // 2) if len(content) < 20 else len(content) // 4
+            completion_tokens += text_tokens
         
         # Tenta usar a contagem real de tokens do provedor se disponível
         if isinstance(result, CreateResult) and hasattr(result, "usage") and result.usage:
