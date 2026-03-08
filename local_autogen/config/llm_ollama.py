@@ -1,5 +1,8 @@
 import os
 import requests
+import time
+import sys
+import asyncio
 from typing import List, Any, Optional, Union, Mapping, Sequence, AsyncGenerator
 from autogen_ext.models.ollama import OllamaChatCompletionClient
 from autogen_ext.models.ollama._model_info import _MODEL_INFO
@@ -15,8 +18,8 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
     Extensão do cliente Ollama que loga o tamanho do contexto de cada chamada.
     Permite visualizar a janela de contexto de cada agente.
     """
-    def _log_context(self, messages: Sequence[LLMMessage], is_streaming: bool = False):
-        """Calcula e loga o tamanho do contexto."""
+    def _get_context_info(self, messages: Sequence[LLMMessage], is_streaming: bool = False) -> str:
+        """Calcula metadados do contexto sem imprimir imediatamente."""
         total_chars = 0
         msg_count = len(messages)
         
@@ -37,27 +40,84 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
         # Log visual discreto no console (estilo Claude Code: minimalista e cinza)
         num_ctx = self._raw_config.get('num_ctx', '32768')
         mode_label = "STREAM" if is_streaming else "CREATE"
-        print(f"\033[90m[CONTEXTO] {mode_label} | {msg_count} msgs | ~{est_tokens}/{num_ctx} tokens | Processando...\033[0m")
+        return f"\033[90m[CONTEXTO] {mode_label} | {msg_count} msgs | ~{est_tokens}/{num_ctx} tokens | "
+
+    async def _animate_wait(self, header: str, stop_event: asyncio.Event):
+        """Tarefa de fundo que exibe um spinner animado no console."""
+        frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+        i = 0
+        try:
+            while not stop_event.is_set():
+                frame = frames[i % len(frames)]
+                sys.stdout.write(f"\r{header}{frame} Processando...\033[0m")
+                sys.stdout.flush()
+                i += 1
+                await asyncio.sleep(0.1)
+            # Ao parar, finaliza a linha de forma limpa
+            sys.stdout.write(f"\r{header}✅ Pronto!                         \n")
+            sys.stdout.flush()
+        except (asyncio.CancelledError, Exception):
+            # Fallback para garantir que o console não fique em estado inconsistente
+            sys.stdout.write("\n")
+            sys.stdout.flush()
 
     async def create(
         self,
         messages: Sequence[LLMMessage],
         **kwargs: Any,
     ) -> CreateResult:
-        self._log_context(messages, is_streaming=False)
-        return await super().create(
-            messages=messages,
-            **kwargs
-        )
+        header = self._get_context_info(messages, is_streaming=False)
+        stop_event = asyncio.Event()
+        anim_task = asyncio.create_task(self._animate_wait(header, stop_event))
+        
+        start_time = time.time()
+        result = None
+        try:
+            result = await super().create(
+                messages=messages,
+                **kwargs
+            )
+            return result
+        finally:
+            stop_event.set()
+            await anim_task
+            if result:
+                self._log_performance(result, time.time() - start_time, msg_count=len(messages))
 
     async def create_stream(
         self,
         messages: Sequence[LLMMessage],
         **kwargs: Any,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
-        self._log_context(messages, is_streaming=True)
-        async for chunk in super().create_stream(messages=messages, **kwargs):
-            yield chunk
+        header = self._get_context_info(messages, is_streaming=True)
+        stop_event = asyncio.Event()
+        anim_task = asyncio.create_task(self._animate_wait(header, stop_event))
+        
+        start_time = time.time()
+        ttft = None
+        full_content = []
+        
+        try:
+            async for chunk in super().create_stream(messages=messages, **kwargs):
+                if ttft is None:
+                    ttft = time.time() - start_time
+                    stop_event.set()
+                    # Aguardar brevemente para a tarefa de animação limpar a linha
+                    await anim_task
+                
+                if isinstance(chunk, str):
+                    full_content.append(chunk)
+                elif isinstance(chunk, CreateResult):
+                    full_content.append(chunk.content)
+                yield chunk
+        finally:
+            if not stop_event.is_set():
+                stop_event.set()
+                await anim_task
+            
+            duration = time.time() - start_time
+            if full_content:
+                self._log_performance("".join(full_content), duration, ttft=ttft, msg_count=len(messages))
 
 def make_ollama_client(
     model_name: str = None,

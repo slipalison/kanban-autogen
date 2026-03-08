@@ -48,8 +48,13 @@ async def run_kanban_team(initial_task: str) -> None:
 
         # Cliente para o seletor (quem decide quem fala a seguir)
         logger.info("🤖 Configurando modelo seletor...")
-        # Seletor com contexto reduzido para maior velocidade (8k é suficiente para decisão de turno)
-        selector_client = make_ollama_client(model_params={"num_ctx": 8192})
+        # Unificar num_ctx com os agentes (32k) para otimizar reuso de KV Cache no Ollama
+        # Limitar num_predict para o seletor (ele só precisa retornar o nome do agente)
+        selector_client = make_ollama_client(model_params={
+            "num_ctx": 32768,
+            "num_predict": 64,
+            "temperature": 0.0
+        })
 
         # SelectorGroupChat garante o controle dinâmico da vez de quem vai falar
         logger.info("🎯 Criando SelectorGroupChat com workflow estruturado...")
@@ -58,12 +63,9 @@ async def run_kanban_team(initial_task: str) -> None:
             model_client=selector_client,
             termination_condition=termination,
             selector_prompt=(
-                "Você é o coordenador de um projeto Kanban.\n"
-                "Siga esta sequência: planner -> architect -> infrastructure -> coder -> reviewer.\n"
-                "Se o reviewer encontrar erros, volte para o coder.\n"
-                "Se aprovado, infrastructure faz deploy e o planner fecha o ciclo.\n"
-                "Regra de Ouro: APENAS o 'coder' escreve código de aplicação. 'infrastructure' escreve arquivos de infra.\n"
-                "Analise o histórico e decida o próximo agente."
+                "Próximo agente? (planner, architect, infrastructure, coder, reviewer)\n"
+                "Siga a sequência linear. Se revisão falhou -> coder. Se OK -> planner.\n"
+                "Responda APENAS o nome do agente (ex: 'coder')."
             )
         )
 

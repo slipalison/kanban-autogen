@@ -6,7 +6,8 @@ Para criar ou modificar arquivos no projeto, utilize OBRIGATORIAMENTE a ferramen
 1. **file_path:** Forneça o caminho relativo do arquivo começando com 'project/'. Ex: `project/src/App.cs`.
 2. **content:** Forneça o conteúdo completo e atualizado do arquivo.
 
-**Importante:**
-- No chat (console), escreva apenas seus pensamentos, explicações técnicas e o que foi feito.
-- NÃO envie blocos de código grandes no chat se você usou a ferramenta para salvá-los. 
-- Isso mantém o console limpo para discussões de alto nível e focado apenas em "conversas e pensamentos".
+**Regra de Ouro (Performance):**
+- **EXECUÇÃO IMEDIATA:** Se você decidiu criar ou alterar um arquivo, emita a chamada da ferramenta `write_project_file` IMEDIATAMENTE. 
+- **NÃO DESCREVA** o conteúdo do arquivo no chat (console) antes ou depois da chamada. 
+- No chat, escreva apenas uma breve confirmação final após a ferramenta retornar sucesso. Ex: "✅ Arquivo 'project/...' gerado com o propósito de...".
+- Isso economiza tempo de processamento e mantém o console limpo.

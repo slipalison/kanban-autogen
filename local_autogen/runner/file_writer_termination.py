@@ -2,13 +2,11 @@ from pathlib import Path
 from autogen_agentchat.base import TerminationCondition
 from autogen_agentchat.messages import TextMessage, StopMessage
 
-from local_autogen.tools.file_writer_utils import extract_and_save_files
-
 
 class FileWriterTermination(TerminationCondition):
     """
-    Terminador personalizado que salva arquivos gerados pelo coder_agent.
-    Processa mensagens do formato 'Arquivo: caminho' e cria os arquivos no disco.
+    Terminador personalizado que controla o limite de mensagens.
+    A escrita de arquivos é feita exclusivamente pela ferramenta 'write_project_file'.
     """
 
     def __init__(self, output_dir: str = ".", max_messages: int = 20):
@@ -19,7 +17,7 @@ class FileWriterTermination(TerminationCondition):
 
     async def __call__(self, messages: list[TextMessage]) -> StopMessage | None:
         """
-        Verifica se deve terminar e processa mensagens para salvar arquivos.
+        Verifica se deve terminar.
 
         Args:
             messages: Lista de mensagens recebidas
@@ -28,16 +26,6 @@ class FileWriterTermination(TerminationCondition):
             StopMessage se deve terminar, None caso contrário
         """
         self.message_count += 1
-
-        # Processar a última mensagem para salvar arquivos (Fallback para formato antigo)
-        if messages:
-            last_message = messages[-1]
-            success, count, paths = extract_and_save_files(
-                last_message.content, self.output_dir
-            )
-            if success:
-                self.created_files.extend(paths)
-                # Fallback silencioso ou log mínimo
 
         # Verificar limite de mensagens
         if self.message_count >= self.max_messages:

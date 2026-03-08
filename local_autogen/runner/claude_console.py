@@ -1,4 +1,5 @@
 import sys
+import time
 from typing import AsyncIterable, Any, Union
 from autogen_agentchat.messages import (
     TextMessage, 
@@ -40,6 +41,7 @@ class ClaudeConsole:
         self.stream = stream
         self._current_source = None
         self._has_printed_header = False
+        self._tool_start_times = {}
 
     async def run(self):
         """Consome o stream e imprime formatado no console."""
@@ -146,18 +148,36 @@ class ClaudeConsole:
             # Pode ser um dict ou um objeto com atributos
             if isinstance(call, dict):
                 tool_name = call.get("name", "unknown_tool")
+                call_id = call.get("id", tool_name)
                 args = call.get("arguments", {})
             else:
                 tool_name = getattr(call, "name", "unknown_tool")
+                call_id = getattr(call, "id", tool_name)
                 args = getattr(call, "arguments", {})
             
-            print(f"  {self.TOOL}🔨 Executando {self.BOLD}{tool_name}{self.RESET}{self.TOOL}...")
+            self._tool_start_times[call_id] = time.time()
+            
+            # Especial para escrita de arquivos: mostrar apenas o caminho
+            if tool_name == "write_project_file" and isinstance(args, dict) and "file_path" in args:
+                print(f"  {self.TOOL}🔨 Gravando arquivo: {self.BOLD}{args['file_path']}{self.RESET}{self.TOOL}...")
+            else:
+                print(f"  {self.TOOL}🔨 Executando {self.BOLD}{tool_name}{self.RESET}{self.TOOL}...")
+            
             if args:
                 import json
                 try:
-                    args_str = json.dumps(args, ensure_ascii=False) if isinstance(args, dict) else str(args)
-                    if len(args_str) > 100:
-                        args_str = args_str[:97] + "..."
+                    # Se for escrita de arquivo, não mostramos o 'content' que é gigante
+                    if tool_name == "write_project_file" and isinstance(args, dict):
+                        # Criar uma cópia para não alterar o original
+                        display_args = {k: v for k, v in args.items() if k != "content"}
+                        if "content" in args:
+                            display_args["content"] = f"... ({len(args['content'])} caracteres)"
+                        args_str = json.dumps(display_args, ensure_ascii=False)
+                    else:
+                        args_str = json.dumps(args, ensure_ascii=False) if isinstance(args, dict) else str(args)
+                        if len(args_str) > 100:
+                            args_str = args_str[:97] + "..."
+                    
                     print(f"    {self.DIM}{self.ITALIC}args: {args_str}{self.RESET}")
                 except:
                     pass
@@ -171,11 +191,19 @@ class ClaudeConsole:
         for result in results:
             if isinstance(result, dict):
                 output = str(result.get("content", "")).strip()
+                call_id = result.get("call_id", "unknown")
                 is_error = result.get("is_error", False)
             else:
                 # Pode ser um ToolCallSummaryMessage ou similar
                 output = str(getattr(result, "content", "")).strip()
+                call_id = getattr(result, "call_id", "unknown")
                 is_error = False # Por default
+            
+            duration = ""
+            if call_id in self._tool_start_times:
+                dt = time.time() - self._tool_start_times[call_id]
+                duration = f" {self.DIM}({dt:.2f}s){self.RESET}"
+                del self._tool_start_times[call_id]
             
             status_icon = "❌ " if is_error else "✅ "
             status_color = self.ERROR if is_error else self.SUCCESS
@@ -193,9 +221,9 @@ class ClaudeConsole:
             if summary:
                 # Indentar o resultado
                 indented = summary.replace('\n', '\n    ')
-                print(f"    {status_color}{status_icon}{indented}{self.RESET}")
+                print(f"    {status_color}{status_icon}{indented}{self.RESET}{duration}")
             else:
-                print(f"    {status_color}{status_icon} (Sucesso sem saída){self.RESET}")
+                print(f"    {status_color}{status_icon} (Sucesso sem saída){self.RESET}{duration}")
         print("")
 
     def _handle_stop_message(self, msg: StopMessage):
