@@ -57,9 +57,10 @@ async def run_kanban_team(initial_task: str) -> None:
             timeout=60.0,  # Timeout curto: seletor só gera 1 palavra
             model_params={
                 "num_ctx": 4096,
-                "num_predict": 8,
+                "num_predict": 5,  # Apenas 1 palavra (nome do agente)
                 "temperature": 0.0,
-                "repeat_penalty": 1.0,
+                "repeat_penalty": 1.5,  # Penaliza repetição
+                "top_k": 5,  # Apenas os 5 melhores candidatos
             }
         )
 
@@ -74,13 +75,15 @@ async def run_kanban_team(initial_task: str) -> None:
             selector_prompt=(
                 "Read the conversation and select the next speaker.\n"
                 "Valid speakers: planner, architect, coder, reviewer, infrastructure\n\n"
-                "Rules:\n"
-                "- New task or no history → planner\n"
-                "- planner finished → architect\n"
-                "- architect finished → coder\n"
-                "- coder finished → reviewer\n"
-                "- reviewer found issues → coder\n"
-                "- reviewer approved → planner (next story) or infrastructure (final setup)\n\n"
+                "Workflow Rules (STRICT):\n"
+                "1. New task → planner\n"
+                "2. Planner saved PLAN.md → architect (MUST move forward)\n"
+                "3. Architect finished → coder\n"
+                "4. Coder finished → reviewer\n"
+                "5. Reviewer found issues → coder\n"
+                "6. Reviewer approved → infrastructure or planner (next story)\n\n"
+                "IMPORTANT: If planner says 'Plano salvo' or 'waiting for architect', you MUST select 'architect'.\n"
+                "Do NOT select planner twice in a row unless there's a new task.\n\n"
                 "Respond with ONLY the speaker name, nothing else."
             )
         )
