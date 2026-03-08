@@ -49,10 +49,10 @@ async def run_kanban_team(initial_task: str) -> None:
         # Cliente para o seletor (quem decide quem fala a seguir)
         logger.info("🤖 Configurando modelo seletor...")
         # Unificar num_ctx com os agentes (32k) para otimizar reuso de KV Cache no Ollama
-        # Aumentar um pouco num_predict para evitar cortes em caso de verbosidade
+        # num_predict reduzido para forçar brevidade e economizar tempo
         selector_client = make_ollama_client(model_params={
             "num_ctx": 32768,
-            "num_predict": 128,
+            "num_predict": 32,
             "temperature": 0.0
         })
 
@@ -65,14 +65,22 @@ async def run_kanban_team(initial_task: str) -> None:
             max_selector_attempts=5,
             allow_repeated_speaker=True,
             selector_prompt=(
-                "Você é o coordenador do time. Com base no histórico, escolha o PRÓXIMO agente para falar.\n"
-                "Agentes disponíveis: planner, architect, coder, reviewer, infrastructure.\n\n"
-                "REGRAS DE SELEÇÃO:\n"
-                "1. Siga a sequência lógica: Planner -> Architect -> Coder -> Reviewer.\n"
-                "2. Se o Reviewer encontrar erros, o próximo DEVE ser o Coder.\n"
-                "3. Se o Reviewer aprovar, o próximo DEVE ser o Planner para a próxima tarefa.\n"
-                "4. Use 'infrastructure' para README e Dockerfile conforme necessário.\n\n"
-                "Responda APENAS o nome do agente (ex: 'coder')."
+                "You are the coordinator of a software development team.\n"
+                "Based on the conversation history, choose the NEXT agent to speak from the list below.\n\n"
+                "PARTICIPANTS:\n"
+                "- planner: Tech Lead, defines the plan and user stories.\n"
+                "- architect: Database and system design.\n"
+                "- coder: Implements application code (.cs, .razor, etc.).\n"
+                "- reviewer: Validates implementation and logic.\n"
+                "- infrastructure: Docker, README, and project setup.\n\n"
+                "SELECTION RULES:\n"
+                "1. If starting a new project or task: Choose 'planner'.\n"
+                "2. Standard Flow: planner -> architect -> coder -> reviewer.\n"
+                "3. If 'reviewer' found bugs or suggested fixes: Choose 'coder'.\n"
+                "4. If 'reviewer' approved the work: Choose 'planner' for the next task.\n"
+                "5. Only use 'infrastructure' for non-application files (README, Docker).\n\n"
+                "RESPONSE FORMAT:\n"
+                "Reply ONLY with the exact name of the agent (e.g., 'coder'). No explanation, no markdown, no punctuation."
             )
         )
 

@@ -141,7 +141,12 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
         m, s = divmod(r, 60)
         duration_str = f"{h:02d}:{m:02d}:{s:02d}"
         
-        perf_info = f"\033[90m[PERFORMANCE] {msg_count} msgs | ~{completion_tokens} tokens | {duration_str} | {tps:.1f} tokens/sec"
+        # Prévia da resposta se for curta (ex: seletor)
+        preview = ""
+        if content and len(content.strip()) < 100:
+            preview = f" | Resp: '{content.strip()}'"
+
+        perf_info = f"\033[90m[PERFORMANCE] {msg_count} msgs | ~{completion_tokens} tokens | {duration_str} | {tps:.1f} tokens/sec{preview}"
         if ttft is not None:
             perf_info += f" | TTFT: {ttft:.2f}s"
             # Alerta se o prefill estiver lento

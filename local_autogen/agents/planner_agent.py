@@ -16,7 +16,7 @@ def make_planner_agent(extra_tools: Optional[List[Tool]] = None) -> AssistantAge
     return AssistantAgent(
         "planner",
         model_client=client,
-        system_message=load_prompt("planner", skills=["context7", "file_writer"]),
+        system_message=load_prompt("planner", skills=["file_writer"]),
         description="Tech Lead & Product Owner - Define a visão de produto, prioriza o backlog e coordena a execução técnica do time.",
         model_client_stream=True,
         tools=tools,
