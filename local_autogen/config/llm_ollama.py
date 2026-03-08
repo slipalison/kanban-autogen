@@ -60,7 +60,8 @@ def make_ollama_client(
     client = OllamaChatCompletionClient(
         model=model_name,
         base_url=base_url,
-        api_key=api_key
+        api_key=api_key,
+        model_info=model_info
     )
 
     return client
