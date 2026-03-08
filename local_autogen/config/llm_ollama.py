@@ -42,7 +42,8 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
         est_tokens = total_chars // 4
         
         # Log visual discreto no console (estilo Claude Code: minimalista e cinza)
-        print(f"\033[90m[CONTEXTO] {msg_count} msgs | ~{est_tokens}/{self._client_args.get('num_ctx', '32768')} tokens\033[0m")
+        num_ctx = self._raw_config.get('num_ctx', '32768')
+        print(f"\033[90m[CONTEXTO] {msg_count} msgs | ~{est_tokens}/{num_ctx} tokens\033[0m")
         
         return await super().create(
             messages=messages,
