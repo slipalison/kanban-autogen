@@ -61,6 +61,28 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
             sys.stdout.write("\n")
             sys.stdout.flush()
 
+    def _log_performance(self, result: Union[str, CreateResult], duration: float, ttft: Optional[float] = None, msg_count: int = 0):
+        """Loga métricas de performance (tokens/sec, TTFT) no console."""
+        content = ""
+        if isinstance(result, str):
+            content = result
+        elif hasattr(result, "content") and isinstance(result.content, str):
+            content = result.content
+        
+        # Estimativa de tokens (1 token ~ 4 caracteres)
+        tokens = len(content) // 4
+        tps = tokens / duration if duration > 0 else 0
+        
+        perf_info = f"\033[90m[PERFORMANCE] {msg_count} msgs | ~{tokens} tokens | {duration:.2f}s | {tps:.1f} tokens/sec"
+        if ttft is not None:
+            perf_info += f" | TTFT: {ttft:.2f}s"
+            # Alerta se o prefill estiver lento (acima de 5s em um setup de 4090/7900X3D é incomum)
+            if ttft > 5.0:
+                perf_info += " ⚠️ (Prefill Lento)"
+        
+        perf_info += "\033[0m"
+        print(perf_info)
+
     async def create(
         self,
         messages: Sequence[LLMMessage],
