@@ -1,0 +1,9 @@
+# Autogen Core Framework
+autogen-agentchat
+autogen-core
+
+# Autogen Extensions (MCP e Ollama)
+autogen-ext[mcp,ollama]
+
+# Utils
+python-dotenv

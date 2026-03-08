@@ -1,0 +1,28 @@
+from pathlib import Path
+
+def load_prompt(prompt_name: str, include_skills: bool = True) -> str:
+    """Carrega o conteúdo de um arquivo de prompt .md, opcionalmente incluindo as skills comuns."""
+    # Obter o caminho base onde este arquivo está (local_autogen/agents)
+    base_path = Path(__file__).parent
+    prompts_dir = base_path / "prompts"
+    
+    prompt_path = prompts_dir / f"{prompt_name}.md"
+    
+    if not prompt_path.exists():
+        raise FileNotFoundError(f"Prompt '{prompt_name}' não encontrado em {prompt_path}")
+    
+    content = prompt_path.read_text(encoding="utf-8")
+    
+    if include_skills:
+        skills_dir = prompts_dir / "skills"
+        if skills_dir.exists() and skills_dir.is_dir():
+            all_skills = []
+            for skill_file in sorted(skills_dir.glob("*.md")):
+                skill_content = skill_file.read_text(encoding="utf-8")
+                all_skills.append(skill_content.strip())
+            
+            if all_skills:
+                skills_content = "\n\n---\n\n".join(all_skills)
+                content = f"{content.strip()}\n\n---\n\n{skills_content}"
+            
+    return content
