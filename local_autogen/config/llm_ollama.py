@@ -84,14 +84,21 @@ def make_ollama_client(
 
     model_info = model_capabilities or default_capabilities
     
-    # Parâmetros padrão para otimização de velocidade
+    # Parâmetros padrão para otimização de velocidade extrema na RTX 4090 + 7900X3D
     # num_ctx: 32768 (conforme solicitado pelo usuário)
-    # temperature: 0 para ser mais determinístico e rápido em decisões
+    # num_batch: 2048 - Acelera drasticamente o processamento inicial (Prefill)
+    # num_thread: 12 - Otimizado para os cores físicos do 7900X3D
+    # f16_kv: True - Melhora performance do cache na GPU
     default_params = {
         "num_ctx": 32768,
         "temperature": 0.0,
         "num_predict": 4096,
-        "repeat_penalty": 1.1
+        "repeat_penalty": 1.1,
+        "num_batch": 2048,
+        "num_thread": 12,
+        "f16_kv": True,
+        "num_gpu": 99,       # Garante uso total da GPU
+        "low_vram": False    # Desativa se estiver com bastante VRAM (como na 4090)
     }
     
     params = default_params.copy()

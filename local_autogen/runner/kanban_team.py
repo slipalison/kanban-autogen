@@ -6,7 +6,7 @@ from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.teams import SelectorGroupChat
 
-from local_autogen.config.llm_ollama import make_ollama_qwen_client
+from local_autogen.config.llm_ollama import make_ollama_client, make_ollama_qwen_client
 from local_autogen.agents.planner_agent import make_planner_agent
 from local_autogen.agents.architect_agent import make_architect_agent
 from local_autogen.agents.coder_agent import make_coder_agent
@@ -48,7 +48,8 @@ async def run_kanban_team(initial_task: str) -> None:
 
         # Cliente para o seletor (quem decide quem fala a seguir)
         logger.info("🤖 Configurando modelo seletor...")
-        selector_client = make_ollama_qwen_client()
+        # Seletor com contexto reduzido para maior velocidade (8k é suficiente para decisão de turno)
+        selector_client = make_ollama_client(model_params={"num_ctx": 8192})
 
         # SelectorGroupChat garante o controle dinâmico da vez de quem vai falar
         logger.info("🎯 Criando SelectorGroupChat com workflow estruturado...")
