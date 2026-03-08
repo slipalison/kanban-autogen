@@ -3,7 +3,9 @@ from typing import AsyncIterable, Any, Union
 from autogen_agentchat.messages import (
     TextMessage, 
     StopMessage,
-    HandoffMessage
+    HandoffMessage,
+    ModelClientStreamingChunkEvent,
+    ThoughtEvent
 )
 
 # Como os eventos de ferramentas podem variar, vamos usar nomes genéricos 
@@ -36,6 +38,8 @@ class ClaudeConsole:
 
     def __init__(self, stream: AsyncIterable[Any]):
         self.stream = stream
+        self._current_source = None
+        self._has_printed_header = False
 
     async def run(self):
         """Consome o stream e imprime formatado no console."""
@@ -45,12 +49,16 @@ class ClaudeConsole:
     def _print_message(self, message: Any):
         # Muitas vezes o que vem no stream é um evento que contém a mensagem
         msg_obj = message
-        if hasattr(message, "message"):
+        if hasattr(message, "message") and message.message is not None:
             msg_obj = message.message
         
         class_name = type(msg_obj).__name__
 
-        if isinstance(msg_obj, TextMessage):
+        if isinstance(msg_obj, ModelClientStreamingChunkEvent):
+            self._handle_streaming_chunk(msg_obj)
+        elif isinstance(msg_obj, ThoughtEvent):
+            self._handle_thought(msg_obj)
+        elif isinstance(msg_obj, TextMessage):
             self._handle_text_message(msg_obj)
         elif "ToolCallRequest" in class_name or "FunctionCall" in class_name:
             self._handle_tool_call(msg_obj)
@@ -68,14 +76,44 @@ class ClaudeConsole:
                 return theme
         return ("\033[97m", "🤖") # Default
 
-    def _handle_text_message(self, msg: TextMessage):
-        color, icon = self._get_theme(msg.source)
-        
+    def _print_header(self, source: str):
+        if self._current_source == source and self._has_printed_header:
+            return
+            
+        color, icon = self._get_theme(source)
         # Divisor sutil entre mensagens de agentes
-        print(f"{self.DIM}─" * 60 + f"{self.RESET}")
-        
+        print(f"\n{self.DIM}─" * 60 + f"{self.RESET}")
         # Cabeçalho do Agente
-        print(f"{color}{self.BOLD}{icon} {msg.source.upper()}{self.RESET}")
+        print(f"{color}{self.BOLD}{icon} {source.upper()}{self.RESET}")
+        self._current_source = source
+        self._has_printed_header = True
+
+    def _handle_streaming_chunk(self, msg: ModelClientStreamingChunkEvent):
+        self._print_header(msg.source)
+        # Imprimir o conteúdo do chunk sem pular linha
+        content = msg.content
+        sys.stdout.write(f"  {content}")
+        sys.stdout.flush()
+
+    def _handle_thought(self, msg: ThoughtEvent):
+        self._print_header(msg.source)
+        # Pensamentos geralmente são prefixados ou formatados diferentemente
+        content = msg.content.strip()
+        if content:
+            print(f"\n  {self.DIM}{self.ITALIC}💭 Pensamento: {content}{self.RESET}")
+
+    def _handle_text_message(self, msg: TextMessage):
+        # Se já imprimimos os chunks, a mensagem completa pode vir vazia ou redundante
+        # Mas no AutoGen, a TextMessage final contém o texto completo.
+        # Se já imprimimos via chunks, não queremos imprimir tudo de novo.
+        
+        if self._current_source == msg.source and self._has_printed_header:
+            # Já imprimimos chunks deste agente. Apenas finalizamos com uma nova linha.
+            print("\n")
+            self._has_printed_header = False # Reset para a próxima mensagem
+            return
+
+        self._print_header(msg.source)
         
         # Conteúdo (Pensamentos/Respostas)
         content = msg.content.strip()
@@ -85,6 +123,7 @@ class ClaudeConsole:
             for line in lines:
                 print(f"  {line}")
         print("")
+        self._has_printed_header = False
 
     def _handle_tool_call(self, msg: Any):
         # Tenta extrair o source e o conteúdo (lista de chamadas)

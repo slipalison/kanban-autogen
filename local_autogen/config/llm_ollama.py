@@ -1,6 +1,6 @@
 import os
 import requests
-from typing import List, Any, Optional, Union, Mapping, Sequence
+from typing import List, Any, Optional, Union, Mapping, Sequence, AsyncGenerator
 from autogen_ext.models.ollama import OllamaChatCompletionClient
 from autogen_ext.models.ollama._model_info import _MODEL_INFO
 from autogen_core.models import (
@@ -15,12 +15,8 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
     Extensão do cliente Ollama que loga o tamanho do contexto de cada chamada.
     Permite visualizar a janela de contexto de cada agente.
     """
-    async def create(
-        self,
-        messages: Sequence[LLMMessage],
-        **kwargs: Any,
-    ) -> CreateResult:
-        # Calcular tamanho do contexto
+    def _log_context(self, messages: Sequence[LLMMessage], is_streaming: bool = False):
+        """Calcula e loga o tamanho do contexto."""
         total_chars = 0
         msg_count = len(messages)
         
@@ -40,12 +36,28 @@ class OllamaLoggingClient(OllamaChatCompletionClient):
         
         # Log visual discreto no console (estilo Claude Code: minimalista e cinza)
         num_ctx = self._raw_config.get('num_ctx', '32768')
-        print(f"\033[90m[CONTEXTO] {msg_count} msgs | ~{est_tokens}/{num_ctx} tokens\033[0m")
-        
+        mode_label = "STREAM" if is_streaming else "CREATE"
+        print(f"\033[90m[CONTEXTO] {mode_label} | {msg_count} msgs | ~{est_tokens}/{num_ctx} tokens | Processando...\033[0m")
+
+    async def create(
+        self,
+        messages: Sequence[LLMMessage],
+        **kwargs: Any,
+    ) -> CreateResult:
+        self._log_context(messages, is_streaming=False)
         return await super().create(
             messages=messages,
             **kwargs
         )
+
+    async def create_stream(
+        self,
+        messages: Sequence[LLMMessage],
+        **kwargs: Any,
+    ) -> AsyncGenerator[Union[str, CreateResult], None]:
+        self._log_context(messages, is_streaming=True)
+        async for chunk in super().create_stream(messages=messages, **kwargs):
+            yield chunk
 
 def make_ollama_client(
     model_name: str = None,
