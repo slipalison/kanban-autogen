@@ -1,13 +1,12 @@
-FORMATO OBRIGATÓRIO PARA GERAR ARQUIVOS:
-Você pode gerar QUALQUER tipo de arquivo (código-fonte de qualquer linguagem, Markdown, JSON, YAML, scripts, documentação, etc.).
-Para cada arquivo que você gerar, use este formato exato:
+### ESCRITA DE ARQUIVOS (write_project_file)
 
-Arquivo: caminho/do/arquivo.ext
+Para criar ou modificar arquivos no projeto, utilize OBRIGATORIAMENTE a ferramenta `write_project_file`.
 
-```
-conteúdo completo do arquivo aqui
-```
+**Instruções de Uso:**
+1. **file_path:** Forneça o caminho relativo do arquivo começando com 'project/'. Ex: `project/src/App.cs`.
+2. **content:** Forneça o conteúdo completo e atualizado do arquivo.
 
-O sistema processará automaticamente estes blocos e salvará os arquivos no disco.
-Sempre use caminhos relativos à raiz do projeto e GARANTA que tudo comece com o diretório 'project/'.
-Exemplo: project/src/App.cs, project/README.md, project/scripts/deploy.sh.
+**Importante:**
+- No chat (console), escreva apenas seus pensamentos, explicações técnicas e o que foi feito.
+- NÃO envie blocos de código grandes no chat se você usou a ferramenta para salvá-los. 
+- Isso mantém o console limpo para discussões de alto nível e focado apenas em "conversas e pensamentos".

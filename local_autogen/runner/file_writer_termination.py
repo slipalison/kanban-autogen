@@ -29,7 +29,7 @@ class FileWriterTermination(TerminationCondition):
         """
         self.message_count += 1
 
-        # Processar a última mensagem para salvar arquivos
+        # Processar a última mensagem para salvar arquivos (Fallback para formato antigo)
         if messages:
             last_message = messages[-1]
             success, count, paths = extract_and_save_files(
@@ -37,7 +37,7 @@ class FileWriterTermination(TerminationCondition):
             )
             if success:
                 self.created_files.extend(paths)
-                print(f"\n[FILE WRITER] Salvos {count} arquivo(s): {', '.join(paths)}\n")
+                # Fallback silencioso ou log mínimo
 
         # Verificar limite de mensagens
         if self.message_count >= self.max_messages:

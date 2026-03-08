@@ -96,5 +96,18 @@ execute_shell_command("terraform plan")  # Preview de mudanças de infraestrutur
 - ✅ Execute builds e deploys quando solicitado
 - ⚠️ Tenha cuidado com comandos destrutivos (`docker system prune`, `terraform destroy`)
 
+### **3. Escrita de Arquivos (write_project_file)**
+
+**Quando usar:**
+- ✅ Para criar Dockerfiles, Docker Compose, manifests Kubernetes, scripts de deploy (.sh), .env.example, etc.
+
+**Como usar:**
+- Use a ferramenta `write_project_file(file_path="project/path/to/file", content="...")`.
+
+**⚠️ REGRAS DE OURO:**
+- **NUNCA** envie o conteúdo do arquivo no chat. Use sempre a ferramenta.
+- No chat/console, deixe apenas seus pensamentos, lógica de infraestrutura e explicações.
+- Isso mantém o console limpo e focado na conversa.
+
 ---
 
